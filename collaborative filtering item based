@@ -1,0 +1,79 @@
+import numpy as np
+import pandas as pd
+
+# Sample user ratings data
+ratings = pd.DataFrame({
+    'userId': [1, 1, 2, 2, 3],
+    'movieId': [1, 2, 1, 3, 2],
+    'rating': [5, 4, 4, 5, 2]
+})
+
+
+def create_user_movie_matrix(ratings):
+    """
+    Create a user-item matrix from ratings data.
+
+    Parameters:
+    ratings (DataFrame): DataFrame containing user ratings data.
+
+    Returns:
+    DataFrame: User-item matrix with users as rows and movies as columns.
+    """
+    user_movie_matrix = ratings.pivot(index='userId', columns='movieId', values='rating').fillna(0)
+    print(user_movie_matrix)
+
+def compute_item_similarity(user_movie_matrix):
+    """
+    Compute item similarity using dot product of user-item matrix.
+
+    Parameters:
+    user_movie_matrix (DataFrame): User-item matrix.
+
+    Returns:
+    ndarray: Item similarity matrix.
+    """
+    return np.dot(user_movie_matrix.T, user_movie_matrix)
+
+
+def item_based_recommendations(movie_id, user_movie_matrix, item_similarity, n=3):
+    """
+    Recommend movies based on item similarity to a given movie ID.
+
+    Parameters:
+    movie_id (int): Movie ID to find recommendations for.
+    user_movie_matrix (DataFrame): User-item matrix.
+    item_similarity (ndarray): Item similarity matrix.
+    n (int): Number of recommendations to return.
+
+    Returns:
+    list: List of recommended movie IDs.
+    """
+    # Get index of the movie
+    idx = user_movie_matrix.columns.get_loc(movie_id)
+
+    # Get similarity scores for that movie
+    sim_scores = item_similarity[idx]
+
+    # Sort the movies based on similarity scores
+    similar_movies = list(enumerate(sim_scores))
+
+    # Sort by similarity score in descending order and exclude itself
+    similar_movies = sorted(similar_movies, key=lambda x: x[1], reverse=True)[1:n + 1]
+
+    # Get movie indices of similar movies
+    movie_indices = [i[0] for i in similar_movies]
+
+    return user_movie_matrix.columns[movie_indices].tolist()
+
+
+# Create user-item matrix and compute item similarity
+user_movie_matrix = create_user_movie_matrix(ratings)
+item_similarity = compute_item_similarity(user_movie_matrix)
+
+# Get recommendations for movieId 1
+recommendations = item_based_recommendations(1, user_movie_matrix, item_similarity)
+
+#Format and print the recommendation
+formatted_recommendations = [f"movieId {movie_id}" for movie_id in recommendations]
+print("\nItem-Based Collaborative Filtering Recommendations for Movie ID 1:")
+print(formatted_recommendations)

@@ -1,0 +1,68 @@
+import surprise
+import pandas as pd
+from surprise import Dataset, Reader, KNNBasic
+from surprise.model_selection import train_test_split
+from surprise import accuracy
+
+
+# Sample Movie Ratings DataFrame
+data_dict = {
+    'user_id': [1, 1, 1, 2, 2, 3, 3, 4, 4, 5],
+    'item_id': [101, 102, 103, 101, 104, 102, 105, 103, 104, 105],
+    'rating': [5, 4, 3, 2, 5, 4, 5, 3, 2, 1]
+}
+
+df = pd.DataFrame(data_dict)
+
+# Define a Reader object
+reader = Reader(rating_scale=(1, 5))
+
+# Load the data into Surprise's Dataset format
+data = Dataset.load_from_df(df[['user_id', 'item_id', 'rating']], reader)
+
+# Split the dataset into training and testing sets
+trainset, testset = train_test_split(data, test_size=0.2)
+
+# Use KNN with user-based collaborative filtering
+knn = KNNBasic(sim_options={'name': 'cosine', 'user_based': True})
+knn.fit(trainset)
+
+# Make predictions on the testset
+predictions = knn.test(testset)
+
+# Calculate and print RMSE and MAE
+rmse = accuracy.rmse(predictions)
+mae = accuracy.mae(predictions)
+
+print(f'RMSE: {rmse:.2f}')
+print(f'MAE: {mae:.2f}')
+
+
+# Function to get movie recommendations for a user
+def get_movie_recommendations(user_id, num_recommendations=3):
+    # Get a list of all movie IDs
+    all_movie_ids = df['item_id'].unique()
+
+    # Get the movies that the user has already rated
+    rated_movies = df[df['user_id'] == user_id]['item_id'].tolist()
+
+    # Filter out movies that the user has already rated
+    movies_to_predict = [movie for movie in all_movie_ids if movie not in rated_movies]
+
+    # Predict ratings for the remaining movies
+    predictions = []
+    for movie in movies_to_predict:
+        pred_rating = knn.predict(user_id, movie)
+        predictions.append((movie, pred_rating.est))
+
+    # Sort predictions by estimated rating and return the top N recommendations
+    recommendations = sorted(predictions, key=lambda x: x[1], reverse=True)[:num_recommendations]
+
+    return recommendations
+
+
+# Example: Get recommendations for user with ID 1
+recommended_movies = get_movie_recommendations(user_id=1)
+print("Recommended Movies for User 1:")
+for movie_id, rating in recommended_movies:
+    print(f'Movie ID: {movie_id}, Predicted Rating: {rating:.2f}')

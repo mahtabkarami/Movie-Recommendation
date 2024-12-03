@@ -1,0 +1,45 @@
+import pandas as pd
+
+# Load the data from CSV files
+movies = pd.read_csv('movies.csv')
+ratings = pd.read_csv('ratings.csv')
+users = pd.read_csv('users.csv')
+
+# Merge ratings with movies to get movie titles
+ratings_with_titles = pd.merge(ratings, movies, on='movieId')
+
+
+# Function to recommend movies based on demographics
+def demographic_recommendations(user_id):
+    # Get the demographic info of the user
+    user_info = users[users['userId'] == user_id].iloc[0]
+
+    # Filter ratings by the same gender and age group
+    if user_info['gender'] == 'M':
+        similar_users = users[
+            (users['gender'] == 'M') & (users['age'].between(user_info['age'] - 5, user_info['age'] + 5))]
+    else:
+        similar_users = users[
+            (users['gender'] == 'F') & (users['age'].between(user_info['age'] - 5, user_info['age'] + 5))]
+
+    # Get the ratings from similar users
+    similar_user_ids = similar_users['userId'].tolist()
+    similar_ratings = ratings_with_titles[ratings_with_titles['userId'].isin(similar_user_ids)]
+
+    # Calculate average ratings for movies rated by similar users
+    recommendations = similar_ratings.groupby('movieId').agg({'rating': 'mean'}).reset_index()
+
+    # Merge with movie titles to get movie names
+    recommendations = pd.merge(recommendations, movies[['movieId', 'title']], on='movieId')
+
+    # Sort by average rating and return top 5 recommendations
+    recommendations = recommendations.sort_values(by='rating', ascending=False).head(5)
+
+    return recommendations
+
+
+# Example: Get recommendations for user with ID 1
+recommended_movies = demographic_recommendations(user_id=1)
+print("Recommended Movies for User 1:")
+for index, row in recommended_movies.iterrows():
+    print(f'Movie: {row["title"]}, Average Rating: {row["rating"]:.2f}')

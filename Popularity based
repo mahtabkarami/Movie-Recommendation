@@ -1,0 +1,77 @@
+import pandas as pd
+
+# Sample movie ratings data
+ratings_data = {
+    'userId': [1, 1, 2, 2, 3, 3, 4, 5, 5],
+    'movieId': [1, 2, 1, 3, 2, 3, 1, 2, 3],
+    'rating': [5, 4, 4, 5, 2, 3, 4, 5, 2]
+}
+# Create a DataFrame
+ratings = pd.DataFrame(ratings_data)
+print(ratings)
+# Sample movie titles data
+movies_data = {
+    'movieId': [1, 2, 3],
+    'title': ['Movie A', 'Movie B', 'Movie C']
+}
+
+# Create a DataFrame for movies
+movies = pd.DataFrame(movies_data)
+
+
+def compute_movie_popularity(ratings):
+    """
+    Compute movie popularity based on the number of ratings and average rating.
+
+    Parameters:
+    ratings (DataFrame): DataFrame containing user ratings data.
+
+    Returns:
+    DataFrame: DataFrame with movieId, number of ratings, and average rating.
+    """
+    # Group by movieId and calculate number of ratings and average rating
+    popularity = ratings.groupby('movieId').agg(
+        num_ratings=('rating', 'count'),
+        avg_rating=('rating', 'mean')
+    ).reset_index()
+
+    # Sort by number of ratings and then by average rating
+    popularity = popularity.sort_values(by=['num_ratings', 'avg_rating'], ascending=False)
+
+    return popularity
+
+
+def get_top_n_popular_movies(popularity_df, n=3):
+    """
+    Get the top N popular movies based on the popularity DataFrame.
+
+    Parameters:
+    popularity_df (DataFrame): DataFrame containing movie popularity data.
+    n (int): Number of top movies to return.
+
+    Returns:
+    DataFrame: DataFrame containing top N popular movies.
+    """
+    # Get the top N movies
+    top_movies = popularity_df.head(n)
+
+    return top_movies
+
+
+# Compute movie popularity
+popularity_df = compute_movie_popularity(ratings)
+
+# Get top N popular movies
+top_n_movies = get_top_n_popular_movies(popularity_df)
+
+# Merge with movie titles for better readability
+top_n_movies_with_titles = top_n_movies.merge(movies, on='movieId')
+
+# Display the results with better formatting
+print("Top N Popular Movies:")
+print(f"{'Movie ID':<10} {'Title':<20} {'Num Ratings':<12} {'Avg Rating':<10}")
+print("-" * 52)
+for index, row in top_n_movies_with_titles.iterrows():
+    print(f"{row['movieId']:<10} {row['title']:<20} {row['num_ratings']:<12} {row['avg_rating']:<10.2f}")
+
+

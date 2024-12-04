@@ -20,7 +20,7 @@ def create_user_movie_matrix(ratings):
     DataFrame: User-item matrix with users as rows and movies as columns.
     """
     user_movie_matrix = ratings.pivot(index='userId', columns='movieId', values='rating').fillna(0)
-    print(user_movie_matrix)
+    return user_movie_matrix
 
 def compute_item_similarity(user_movie_matrix):
     """
